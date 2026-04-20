@@ -431,12 +431,37 @@ function uid(){
 function renderProjBar(){
   const bar = document.getElementById('proj-bar');
   let html = projects.map(p => `
-    <div class="proj-tab ${p.id===currentId?'active':''}" onclick="switchProject('${p.id}')">
-      <span>${e(p.name)}</span>
+    <div class="proj-tab ${p.id===currentId?'active':''}" onclick="switchProject('${p.id}')" ondblclick="renameProject('${p.id}',event)" title="Duplo clique para renomear">
+      <span class="proj-name-label">${e(p.name)}</span>
       ${projects.length>1 ? `<span class="proj-close" onclick="confirmDelete('${p.id}',event)">×</span>` : ''}
     </div>`).join('');
   html += `<button class="btn-new-proj" onclick="openNewModal()">+ novo cliente</button>`;
   bar.innerHTML = html;
+}
+
+function renameProject(id, ev){
+  ev.stopPropagation();
+  const p = projects.find(x=>x.id===id);
+  const tab = ev.currentTarget;
+  const label = tab.querySelector('.proj-name-label');
+  const oldName = p.name;
+  const input = document.createElement('input');
+  input.value = oldName;
+  input.style.cssText='font-size:12px;font-family:DM Sans,sans-serif;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.5);color:#fff;outline:none;width:'+(Math.max(oldName.length,8)*8)+'px;padding:0 2px';
+  label.replaceWith(input);
+  input.focus();input.select();
+  function confirm(){
+    const val = input.value.trim()||oldName;
+    p.name = val;
+    saveMeta();
+    renderProjBar();
+  }
+  input.addEventListener('blur', confirm);
+  input.addEventListener('keydown', ev2=>{
+    if(ev2.key==='Enter'){input.blur();}
+    if(ev2.key==='Escape'){input.value=oldName;input.blur();}
+    ev2.stopPropagation();
+  });
 }
 
 function switchProject(id){
