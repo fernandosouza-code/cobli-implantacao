@@ -119,6 +119,15 @@ table.g tr.task-tr:hover td{background:var(--gray50)}
 .btn-export.danger{background:#fff;color:var(--red);border:1px solid var(--gray200);margin-left:auto}
 .btn-export.danger:hover{border-color:var(--red);background:#fff0ee}
 .smsg{font-size:12px;color:var(--green-dark)}
+.tip-wrap{position:relative;display:inline-flex;align-items:center;margin-bottom:14px}
+.tip-icon{width:20px;height:20px;border-radius:50%;background:var(--blue10);border:1px solid var(--blue);color:var(--blue);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:default;flex-shrink:0;user-select:none;transition:background .15s}
+.tip-icon:hover{background:var(--blue);color:#fff}
+.tip-label{font-size:12px;color:var(--text3);margin-left:7px}
+.tip-box{display:none;position:absolute;top:28px;left:0;width:340px;background:#fff;border:1px solid var(--gray200);border-radius:var(--radius-lg);padding:12px 14px;font-size:12px;color:var(--text2);line-height:1.6;z-index:100;box-shadow:0 4px 16px rgba(7,7,78,.1)}
+.tip-box strong{color:var(--navy);font-weight:600;display:block;margin-bottom:6px;font-size:11px;letter-spacing:.03em;text-transform:uppercase}
+.tip-box ul{padding-left:14px;margin-top:4px}
+.tip-box ul li{margin-bottom:3px}
+.tip-wrap:hover .tip-box{display:block}
 @media(max-width:640px){
   .fg.c2,.fg.c3{grid-template-columns:1fr}
   .cost-summary{grid-template-columns:1fr}
@@ -154,6 +163,23 @@ table.g tr.task-tr:hover td{background:var(--gray50)}
         <div class="card-num">1</div><div class="card-title">Dados chave do projeto</div><div class="card-chev open">▾</div>
       </div>
       <div class="card-body open">
+        <div class="tip-wrap">
+          <div class="tip-icon">?</div>
+          <span class="tip-label">Como preencher esta seção?</span>
+          <div class="tip-box">
+            <strong>Dados chave do projeto</strong>
+            Cartão de identidade do projeto — preencha assim que o contrato for fechado.
+            <ul>
+              <li><b>Nome do projeto:</b> identificação interna (ex: Implantação Cobli — Transking)</li>
+              <li><b>Responsável:</b> quem da Cobli lidera e responde pelo projeto</li>
+              <li><b>Patrocinador:</b> nome do decisor do lado do cliente</li>
+              <li><b>Produto:</b> solução contratada (ex: CobliCam Multi 4 canais)</li>
+              <li><b>Data e prazo:</b> base para o cronograma e cobrança de SLA</li>
+              <li><b>Objetivo SMART:</b> meta mensurável (ex: 100% da frota em 30 dias)</li>
+              <li><b>Entregáveis:</b> o que será entregue ao final</li>
+            </ul>
+          </div>
+        </div>
         <div class="fg c2">
           <div class="f"><label>Nome do projeto</label><input id="f-nome" placeholder="Ex: Implementação Cobli — Cliente XPTO" onchange="saveF()"></div>
           <div class="f"><label>Responsável (Cobli)</label><input id="f-resp" onchange="saveF()"></div>
@@ -179,6 +205,20 @@ table.g tr.task-tr:hover td{background:var(--gray50)}
         <div class="card-num">2</div><div class="card-title">Partes interessadas</div><div class="card-chev">▾</div>
       </div>
       <div class="card-body">
+        <div class="tip-wrap">
+          <div class="tip-icon">?</div>
+          <span class="tip-label">Como preencher esta seção?</span>
+          <div class="tip-box">
+            <strong>Partes interessadas</strong>
+            Mapeia todos que precisam ser contactados durante a implantação.
+            <ul>
+              <li><b>Líder de implantação:</b> ponto focal da Cobli do início ao fim</li>
+              <li><b>Vendas e CSM:</b> referências internas para suporte comercial</li>
+              <li><b>Gestor de frota:</b> quem libera os veículos e acompanha o checklist em campo</li>
+              <li><b>Prestadores:</b> técnicos responsáveis pela instalação em cada base</li>
+            </ul>
+          </div>
+        </div>
         <div class="tbl-wrap"><table class="itbl">
           <thead><tr><th>Papel</th><th>Nome</th><th>Empresa</th><th>Telefone</th><th>E-mail</th><th></th></tr></thead>
           <tbody id="st-body"></tbody>
@@ -192,6 +232,19 @@ table.g tr.task-tr:hover td{background:var(--gray50)}
         <div class="card-num">3</div><div class="card-title">Levantamento da frota</div><div class="card-chev">▾</div>
       </div>
       <div class="card-body">
+        <div class="tip-wrap">
+          <div class="tip-icon">?</div>
+          <span class="tip-label">Como preencher esta seção?</span>
+          <div class="tip-box">
+            <strong>Levantamento da frota</strong>
+            Define o escopo técnico da instalação — base para calcular custo, prazo e alocar técnicos.
+            <ul>
+              <li><b>Total contratado e cancelados:</b> controla a quantidade real de instalações</li>
+              <li><b>Tipo/marca/modelo:</b> cada modelo pode exigir instalação diferente — mapeie antes para evitar surpresas em campo</li>
+              <li><b>Customizações:</b> registre tudo que foge do padrão para alinhar com os técnicos antes do início</li>
+            </ul>
+          </div>
+        </div>
         <div class="fg c3">
           <div class="f"><label>Total contratado</label><input type="number" id="fr-total" onchange="saveF();calcFinal()"></div>
           <div class="f"><label>Cancelados</label><input type="number" id="fr-cancel" onchange="saveF();calcFinal()"></div>
@@ -209,6 +262,20 @@ table.g tr.task-tr:hover td{background:var(--gray50)}
         <div class="card-num">4</div><div class="card-title">Bases de operação e instalação</div><div class="card-chev">▾</div>
       </div>
       <div class="card-body">
+        <div class="tip-wrap">
+          <div class="tip-icon">?</div>
+          <span class="tip-label">Como preencher esta seção?</span>
+          <div class="tip-box">
+            <strong>Bases de operação</strong>
+            Registra onde as instalações acontecerão — essencial para planejar envio de equipamentos e logística.
+            <ul>
+              <li><b>ID da base:</b> nome de referência (ex: Matriz, Base SP)</li>
+              <li><b>Endereço:</b> necessário para envio dos dispositivos e deslocamento dos técnicos</li>
+              <li><b>Responsável local:</b> pessoa do cliente que acompanha o checklist — sem ela presente o risco aumenta</li>
+              <li><b>Qtd. de veículos:</b> define quantos técnicos e quanto tempo alocar em cada base</li>
+            </ul>
+          </div>
+        </div>
         <div class="tbl-wrap"><table class="itbl">
           <thead><tr><th>ID</th><th>Endereço</th><th>Responsável</th><th>Contato</th><th>Veículos</th><th>Produto</th><th></th></tr></thead>
           <tbody id="base-body"></tbody>
@@ -222,6 +289,20 @@ table.g tr.task-tr:hover td{background:var(--gray50)}
         <div class="card-num">5</div><div class="card-title">Gestão de riscos e premissas</div><div class="card-chev">▾</div>
       </div>
       <div class="card-body">
+        <div class="tip-wrap">
+          <div class="tip-icon">?</div>
+          <span class="tip-label">Como preencher esta seção?</span>
+          <div class="tip-box">
+            <strong>Riscos e premissas</strong>
+            Antecipar problemas antes que aconteçam. Um risco mapeado com plano de ação vale muito mais do que uma surpresa em campo.
+            <ul>
+              <li><b>Risco:</b> algo que pode atrapalhar (ex: chuva, no-show, veículos não liberados)</li>
+              <li><b>Premissa:</b> condição necessária para o projeto funcionar (ex: cliente disponibiliza responsável)</li>
+              <li><b>Impacto:</b> o que acontece se o risco se concretizar</li>
+              <li><b>Mitigação:</b> o plano B — o que fazer para evitar ou minimizar</li>
+            </ul>
+          </div>
+        </div>
         <div class="tbl-wrap"><table class="itbl">
           <thead><tr><th style="width:90px">Tipo</th><th>Descrição</th><th>Impacto</th><th>Mitigação</th><th></th></tr></thead>
           <tbody id="risk-body"></tbody>
@@ -235,9 +316,22 @@ table.g tr.task-tr:hover td{background:var(--gray50)}
         <div class="card-num">6</div><div class="card-title">Custos da implantação</div><div class="card-chev">▾</div>
       </div>
       <div class="card-body">
+        <div class="tip-wrap">
+          <div class="tip-icon">?</div>
+          <span class="tip-label">Como preencher esta seção?</span>
+          <div class="tip-box">
+            <strong>Custos da implantação</strong>
+            Controla o resultado financeiro em tempo real. Adicione cada custo conforme ele acontece.
+            <ul>
+              <li><b>Prestador:</b> mão de obra dos técnicos de instalação</li>
+              <li><b>Viagem:</b> deslocamento, hospedagem e alimentação da equipe Cobli</li>
+              <li><b>Material:</b> conduítes, suportes e ferramentas consumidas</li>
+              <li><b>Adesão:</b> valor recebido do cliente — registre aqui para calcular o saldo</li>
+              <li><b>Status:</b> controla o que já foi pago vs. o que está pendente</li>
+            </ul>
+          </div>
+        </div>
         <div class="tbl-wrap"><table class="itbl">
-          <thead><tr>
-            <th>Descrição</th><th style="width:110px">Categoria</th>
             <th style="width:100px">Status</th><th style="width:120px">Valor (R$)</th>
             <th style="width:120px">Data</th><th></th>
           </tr></thead>
@@ -260,6 +354,20 @@ table.g tr.task-tr:hover td{background:var(--gray50)}
         <div class="card-num">7</div><div class="card-title">Métricas de resultado</div><div class="card-chev">▾</div>
       </div>
       <div class="card-body">
+        <div class="tip-wrap">
+          <div class="tip-icon">?</div>
+          <span class="tip-label">Como preencher esta seção?</span>
+          <div class="tip-box">
+            <strong>Métricas de resultado</strong>
+            Mede a qualidade da execução e serve de benchmark para projetos futuros.
+            <ul>
+              <li><b>Teste Cobli instalador:</b> % de dispositivos aprovados pós-instalação — meta é 100%</li>
+              <li><b>Qtd. de visitas:</b> total de visitas às bases (revela ineficiências no planejamento)</li>
+              <li><b>No-show técnico/cliente:</b> % de visitas improdutivas por falta de técnico ou responsável</li>
+              <li><b>Tempo médio:</b> referência para cotar projetos futuros com mais precisão</li>
+            </ul>
+          </div>
+        </div>
         <div class="fg c3">
           <div class="f"><label>Teste Cobli instalador (%)</label><input type="number" id="m-teste" onchange="saveF()"></div>
           <div class="f"><label>Qtd. visitas</label><input type="number" id="m-visitas" onchange="saveF()"></div>
@@ -277,6 +385,19 @@ table.g tr.task-tr:hover td{background:var(--gray50)}
         <div class="card-num">8</div><div class="card-title">Lições aprendidas</div><div class="card-chev">▾</div>
       </div>
       <div class="card-body">
+        <div class="tip-wrap">
+          <div class="tip-icon">?</div>
+          <span class="tip-label">Como preencher esta seção?</span>
+          <div class="tip-box">
+            <strong>Lições aprendidas</strong>
+            A memória institucional do time — garante que o próximo líder não cometa os mesmos erros.
+            <ul>
+              <li><b>Forças:</b> o que funcionou bem e deve ser repetido</li>
+              <li><b>Desafios:</b> problemas encontrados e como foram resolvidos</li>
+              <li><b>Recomendações:</b> sugestões concretas de processo, produto ou logística para a próxima implantação</li>
+            </ul>
+          </div>
+        </div>
         <div class="fg c1">
           <div class="f"><label>O que funcionou bem — forças</label><textarea id="l-forca" onchange="saveF()"></textarea></div>
           <div class="f"><label>Desafios identificados</label><textarea id="l-desaf" onchange="saveF()"></textarea></div>
