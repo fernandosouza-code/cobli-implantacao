@@ -39,101 +39,10 @@ body{font-family:'DM Sans',sans-serif;background:#f0f2fa;color:var(--text);displ
 .proj-tab{font-size:12px;font-weight:500;color:rgba(255,255,255,.5);padding:5px 12px;border-radius:var(--radius);cursor:pointer;white-space:nowrap;transition:all .15s;border:1px solid transparent;flex-shrink:0;display:flex;align-items:center;gap:6px}
 .proj-tab:hover{color:#fff;background:rgba(255,255,255,.08)}
 .proj-tab.active{color:#fff;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.15)}
-.proj-tab .proj-close{font-size:13px;color:rgba(255,255,255,.3);line-height:1;padding:1px 2px;border-radius:3px;transition:color .1s}
-.proj-tab:hover .proj-close{color:rgba(255,255,255,.6)}
-.proj-tab .proj-close:hover{color:var(--red)!important}
-.btn-new-proj{font-size:12px;font-weight:500;color:rgba(255,255,255,.5);padding:5px 10px;border-radius:var(--radius);cursor:pointer;white-space:nowrap;border:1px dashed rgba(255,255,255,.2);background:transparent;font-family:'DM Sans',sans-serif;flex-shrink:0;transition:all .15s}
-.btn-new-proj:hover{color:#fff;border-color:rgba(255,255,255,.4)}
-
-/* TABS */
-.tabbar{background:#fff;border-bottom:1.5px solid var(--gray200);display:flex;padding:0 24px;flex-shrink:0}
-.tab{font-size:13px;font-weight:500;color:var(--text2);padding:11px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1.5px;transition:color .15s,border-color .15s;white-space:nowrap;user-select:none}
-.tab:hover{color:var(--navy)}
-.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
-
-/* CONTENT */
-.content{flex:1;padding:20px 24px;overflow-y:auto}
-
-/* MODAL */
-.modal-bg{display:none;position:fixed;inset:0;background:rgba(7,7,78,.4);z-index:200;align-items:center;justify-content:center}
-.modal-bg.open{display:flex}
-.modal{background:#fff;border-radius:var(--radius-lg);padding:24px;width:360px;box-shadow:0 8px 32px rgba(7,7,78,.15)}
-.modal h3{font-size:15px;font-weight:600;color:var(--navy);margin-bottom:6px}
-.modal p{font-size:12px;color:var(--text2);margin-bottom:16px}
-.modal input{width:100%;font-family:'DM Sans',sans-serif;font-size:14px;padding:9px 12px;border:1px solid var(--gray200);border-radius:var(--radius);background:var(--gray50);color:var(--text);margin-bottom:14px}
-.modal input:focus{outline:none;border-color:var(--blue);background:#fff}
-.modal-actions{display:flex;gap:8px;justify-content:flex-end}
-.modal-btn{font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;padding:7px 16px;border-radius:var(--radius);cursor:pointer;border:1px solid var(--gray200);background:#fff;color:var(--text)}
-.modal-btn:hover{background:var(--gray50)}
-.modal-btn.primary{background:var(--navy);color:#fff;border-color:var(--navy)}
-.modal-btn.primary:hover{background:var(--blue);border-color:var(--blue)}
-
-/* CARDS */
-.card{background:#fff;border:1px solid var(--gray200);border-radius:var(--radius-lg);margin-bottom:14px;overflow:hidden}
-.card-head{display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;user-select:none;border-bottom:1px solid transparent;transition:background .1s}
-.card-head:hover{background:var(--gray50)}
-.card-head.open{border-bottom-color:var(--gray200)}
-.card-num{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.card-title{font-size:13px;font-weight:600;color:var(--navy);flex:1}
-.card-chev{font-size:12px;color:var(--text3);transition:transform .2s}
-.card-chev.open{transform:rotate(180deg)}
-.card-body{padding:16px;display:none}
-.card-body.open{display:block}
-
-/* FORM */
-.fg{display:grid;gap:12px;margin-bottom:12px}
-.fg.c2{grid-template-columns:1fr 1fr}
-.fg.c3{grid-template-columns:1fr 1fr 1fr}
-.fg.c1{grid-template-columns:1fr}
-.f{display:flex;flex-direction:column;gap:4px}
-.f label{font-size:11px;font-weight:500;color:var(--text2);letter-spacing:.02em}
-.f input,.f select,.f textarea{font-family:'DM Sans',sans-serif;font-size:13px;padding:8px 10px;border:1px solid var(--gray200);border-radius:var(--radius);background:var(--gray50);color:var(--text);transition:border-color .15s,background .15s;width:100%}
-.f input:focus,.f select:focus,.f textarea:focus{outline:none;border-color:var(--blue);background:#fff}
-.f textarea{resize:vertical;min-height:64px}
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cobli · Implantação</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-:root{
-  --navy:#07074E;--blue:#001BB8;--red:#FF4633;--green:#00AE97;
-  --navy6:#07074E0F;--blue10:#001BB81A;--green10:#00AE9720;
-  --green-dark:#008a79;--red-dark:#cc3828;
-  --gray50:#f7f8fc;--gray100:#eef0f7;--gray200:#dde0ee;
-  --gray400:#9399bb;--gray600:#5a6080;
-  --text:#07074E;--text2:#5a6080;--text3:#9399bb;
-  --radius:8px;--radius-lg:12px;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
-body{font-family:'DM Sans',sans-serif;background:#f0f2fa;color:var(--text);display:flex;flex-direction:column;height:100vh;overflow:hidden}
-.app{display:flex;flex-direction:column;height:100vh}
-
-/* NAV */
-.topnav{background:var(--navy);padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px}
-.nav-brand{display:flex;align-items:center;gap:10px;flex-shrink:0}
-.nav-logo{width:28px;height:28px;background:var(--blue);border-radius:6px;display:flex;align-items:center;justify-content:center}
-.nav-logo svg{width:16px;height:16px}
-.nav-title{font-size:14px;font-weight:600;color:#fff;letter-spacing:.01em}
-.nav-sub{font-size:11px;color:rgba(255,255,255,.4);margin-left:6px}
-.nav-right{display:flex;align-items:center;gap:8px}
-.save-pill{font-size:11px;padding:3px 10px;border-radius:999px;background:rgba(0,174,151,.2);color:#00AE97;border:1px solid rgba(0,174,151,.3);transition:all .3s;white-space:nowrap}
-.save-pill.saving{background:rgba(255,255,255,.1);color:rgba(255,255,255,.45);border-color:rgba(255,255,255,.15)}
-
-/* PROJECT SWITCHER */
-.proj-bar{background:var(--navy);border-top:1px solid rgba(255,255,255,.08);padding:0 24px;height:44px;display:flex;align-items:center;gap:8px;flex-shrink:0;overflow-x:auto}
-.proj-bar::-webkit-scrollbar{height:3px}
-.proj-bar::-webkit-scrollbar-track{background:transparent}
-.proj-bar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:2px}
-.proj-tab{font-size:12px;font-weight:500;color:rgba(255,255,255,.5);padding:5px 12px;border-radius:var(--radius);cursor:pointer;white-space:nowrap;transition:all .15s;border:1px solid transparent;flex-shrink:0;display:flex;align-items:center;gap:6px}
-.proj-tab:hover{color:#fff;background:rgba(255,255,255,.08)}
-.proj-tab.active{color:#fff;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.15)}
-.proj-tab .proj-close{font-size:13px;color:rgba(255,255,255,.3);line-height:1;padding:1px 2px;border-radius:3px;transition:color .1s}
-.proj-tab:hover .proj-close{color:rgba(255,255,255,.6)}
-.proj-tab .proj-close:hover{color:var(--red)!important}
+.proj-tab .proj-edit{font-size:11px;color:rgba(255,255,255,.0);line-height:1;padding:1px 3px;border-radius:3px;transition:color .1s;background:none;border:none;cursor:pointer;font-family:inherit}
+.proj-tab:hover .proj-edit{color:rgba(255,255,255,.5)}
+.proj-tab .proj-edit:hover{color:#fff!important}
+.proj-tab-input{font-size:12px;font-family:'DM Sans',sans-serif;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);border-radius:4px;color:#fff;outline:none;padding:2px 6px;width:140px}
 .btn-new-proj{font-size:12px;font-weight:500;color:rgba(255,255,255,.5);padding:5px 10px;border-radius:var(--radius);cursor:pointer;white-space:nowrap;border:1px dashed rgba(255,255,255,.2);background:transparent;font-family:'DM Sans',sans-serif;flex-shrink:0;transition:all .15s}
 .btn-new-proj:hover{color:#fff;border-color:rgba(255,255,255,.4)}
 
@@ -600,8 +509,9 @@ function uid(){
 function renderProjBar(){
   const bar = document.getElementById('proj-bar');
   let html = projects.map(p => `
-    <div class="proj-tab ${p.id===currentId?'active':''}" onclick="switchProject('${p.id}')" ondblclick="renameProject('${p.id}',event)" title="Duplo clique para renomear">
+    <div class="proj-tab ${p.id===currentId?'active':''}" onclick="switchProject('${p.id}')" id="ptab-${p.id}">
       <span class="proj-name-label">${e(p.name)}</span>
+      <button class="proj-edit" onclick="renameProject('${p.id}',event)" title="Renomear">✎</button>
       ${projects.length>1 ? `<span class="proj-close" onclick="confirmDelete('${p.id}',event)">×</span>` : ''}
     </div>`).join('');
   html += `<button class="btn-new-proj" onclick="openNewModal()">+ novo cliente</button>`;
@@ -611,14 +521,17 @@ function renderProjBar(){
 function renameProject(id, ev){
   ev.stopPropagation();
   const p = projects.find(x=>x.id===id);
-  const tab = ev.currentTarget;
+  const tab = document.getElementById('ptab-'+id);
   const label = tab.querySelector('.proj-name-label');
   const oldName = p.name;
+
   const input = document.createElement('input');
+  input.className = 'proj-tab-input';
   input.value = oldName;
-  input.style.cssText='font-size:12px;font-family:DM Sans,sans-serif;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.5);color:#fff;outline:none;width:'+(Math.max(oldName.length,8)*8)+'px;padding:0 2px';
   label.replaceWith(input);
-  input.focus();input.select();
+  input.focus();
+  input.select();
+
   function confirm(){
     const val = input.value.trim()||oldName;
     p.name = val;
@@ -628,9 +541,10 @@ function renameProject(id, ev){
   input.addEventListener('blur', confirm);
   input.addEventListener('keydown', ev2=>{
     if(ev2.key==='Enter'){input.blur();}
-    if(ev2.key==='Escape'){input.value=oldName;input.blur();}
+    if(ev2.key==='Escape'){p.name=oldName;input.blur();}
     ev2.stopPropagation();
   });
+  input.addEventListener('click', ev2=>ev2.stopPropagation());
 }
 
 function switchProject(id){
