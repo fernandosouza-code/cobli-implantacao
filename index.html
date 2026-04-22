@@ -152,11 +152,17 @@ table.g tr.task-tr:hover td{background:var(--gray50)}
 .mini-sel{font-size:11px;font-family:'DM Sans',sans-serif;border:1px solid var(--gray200);border-radius:4px;background:var(--gray50);color:var(--text);padding:1px 4px;margin-top:2px}
 .del-g{background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:1px 4px;border-radius:3px;flex-shrink:0}
 .del-g:hover{color:var(--red);background:#fff0ee}
-.gbar{position:absolute;top:6px;bottom:6px;border-radius:4px;cursor:grab;user-select:none}
+.gbar{position:absolute;border-radius:4px;cursor:grab;user-select:none}
 .gbar:active{cursor:grabbing}
-.gbar.planned{background:#001BB830;border:1px solid var(--blue)}
-.gbar.realizado{background:var(--green);border:1px solid var(--green-dark)}
-.gbar.atrasado{background:#FF463330;border:1px solid var(--red)}
+.gbar.planned{background:#001BB820;border:1.5px solid var(--blue);top:5px;bottom:52%;z-index:1}
+.gbar.exec{top:52%;bottom:5px;border-radius:4px;z-index:1;cursor:grab;user-select:none}
+.gbar.exec:active{cursor:grabbing}
+.gbar.exec-ok{background:var(--green);border:1.5px solid var(--green-dark)}
+.gbar.exec-late{background:#FF463330;border:1.5px solid var(--red)}
+.gbar.exec-none{background:transparent;border:none;cursor:default}
+.gantt-row-label{font-size:10px;color:var(--text3);margin-top:2px;display:flex;gap:4px}
+.gl-plan{color:var(--blue)}
+.gl-exec{color:var(--green-dark)}
 .today-ln{position:absolute;top:0;bottom:0;width:2px;background:var(--red);z-index:3;pointer-events:none}
 .wknd-cell{background:var(--gray50)!important}
 .ph-tr td{background:var(--navy6)!important;border-bottom:1px solid var(--gray200)}
@@ -439,13 +445,13 @@ table.g tr.task-tr:hover td{background:var(--gray50)}
   <div class="content" id="tab-gantt" style="display:none">
     <div class="gantt-toolbar">
       <label>Início</label><input type="date" id="g-start" onchange="onGCfg()">
-      <label>Dias</label><input type="number" id="g-days" min="7" max="120" step="1" value="30" onchange="onGCfg()">
+      <label>Fim</label><input type="date" id="g-end" onchange="onGCfg()">
       <button class="btn-ghost" onclick="addPhase()">+ fase</button>
     </div>
     <div class="gantt-legend">
-      <div class="gleg"><div class="gleg-sq" style="background:#001BB830;border:1px solid #001BB8"></div>Planejado</div>
-      <div class="gleg"><div class="gleg-sq" style="background:#00AE97"></div>Realizado</div>
-      <div class="gleg"><div class="gleg-sq" style="background:#FF463330;border:1px solid #FF4633"></div>Atrasado</div>
+      <div class="gleg"><div class="gleg-sq" style="background:#001BB820;border:1.5px solid #001BB8"></div>Planejado</div>
+      <div class="gleg"><div class="gleg-sq" style="background:#00AE97"></div>Executado no prazo</div>
+      <div class="gleg"><div class="gleg-sq" style="background:#FF463330;border:1.5px solid #FF4633"></div>Executado com atraso</div>
       <div class="gleg"><div class="gleg-sq" style="background:#FF4633;width:3px;border-radius:1px"></div>Hoje</div>
     </div>
     <div class="gantt-outer"><div id="gw"></div></div>
@@ -740,39 +746,83 @@ function calcCosts(){
 function e(s){return String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
 
 /* ─── GANTT ─── */
-let G = {startDate:'',days:30,tasks:[]};
+let G = {startDate:'',endDate:'',tasks:[]};
 
 function loadG(){
-  try{ const s=localStorage.getItem(gkey(currentId)); if(s) G=JSON.parse(s); else G={startDate:new Date().toISOString().slice(0,10),days:30,tasks:[]}; } catch(ex){ G={startDate:new Date().toISOString().slice(0,10),days:30,tasks:[]}; }
-  if(!G.startDate)G.startDate=new Date().toISOString().slice(0,10);
-  if(!G.days)G.days=30; if(!G.tasks)G.tasks=[];
+  try{ const s=localStorage.getItem(gkey(currentId)); if(s) G=JSON.parse(s); else G={startDate:'',endDate:'',tasks:[]}; } catch(ex){ G={startDate:'',endDate:'',tasks:[]}; }
+  if(!G.tasks)G.tasks=[];
+  if(!G.startDate){ const d=new Date(); G.startDate=d.toISOString().slice(0,10); }
+  if(!G.endDate){ const d=new Date(G.startDate+'T00:00:00'); d.setDate(d.getDate()+30); G.endDate=d.toISOString().slice(0,10); }
+  // migrate old tasks with dur to endDate-based
+  G.tasks.forEach(t=>{ if(t.type==='task'){ if(!t.execStart)t.execStart=''; if(!t.execEnd)t.execEnd=''; } });
   document.getElementById('g-start').value=G.startDate;
-  document.getElementById('g-days').value=G.days;
+  document.getElementById('g-end').value=G.endDate;
   renderG();
 }
+
 function saveG(){try{localStorage.setItem(gkey(currentId),JSON.stringify(G));}catch(ex){}setSaved('saved');}
+
 function onGCfg(){
-  G.startDate=document.getElementById('g-start').value||new Date().toISOString().slice(0,10);
-  G.days=Math.max(7,Math.min(120,parseInt(document.getElementById('g-days').value)||30));
-  document.getElementById('g-days').value=G.days;
+  const s=document.getElementById('g-start').value;
+  const en=document.getElementById('g-end').value;
+  if(s) G.startDate=s;
+  if(en) G.endDate=en;
+  // ensure end >= start
+  if(G.startDate && G.endDate && G.endDate<=G.startDate){
+    const d=new Date(G.startDate+'T00:00:00');d.setDate(d.getDate()+1);
+    G.endDate=d.toISOString().slice(0,10);
+    document.getElementById('g-end').value=G.endDate;
+  }
   saveG();renderG();
 }
+
 function addPhase(){G.tasks.push({type:'phase',name:'Nova fase'});saveG();renderG();}
-function addTaskAfter(pi){G.tasks.splice(pi+1,0,{type:'task',name:'Nova tarefa',base:'',start:0,dur:3,status:'planejado'});saveG();renderG();}
+function addTaskAfter(pi){
+  G.tasks.splice(pi+1,0,{type:'task',name:'Nova tarefa',base:'',planStart:'',planEnd:'',execStart:'',execEnd:''});
+  saveG();renderG();
+}
 function delGItem(i){G.tasks.splice(i,1);saveG();renderG();}
-function gdays(){const s=new Date(G.startDate+'T00:00:00');return Array.from({length:G.days},(_,i)=>{const d=new Date(s);d.setDate(d.getDate()+i);return d;});}
-function todayOff(){const s=new Date(G.startDate+'T00:00:00'),n=new Date();n.setHours(0,0,0,0);return Math.round((n-s)/864e5);}
+
+function gdays(){
+  const s=new Date(G.startDate+'T00:00:00');
+  const en=new Date(G.endDate+'T00:00:00');
+  const days=[];
+  for(let d=new Date(s);d<=en;d.setDate(d.getDate()+1)) days.push(new Date(d));
+  return days;
+}
+
+function todayOff(days){
+  const n=new Date();n.setHours(0,0,0,0);
+  return days.findIndex(d=>d.getTime()===n.getTime());
+}
+
+function dateToIdx(days,dateStr){
+  if(!dateStr)return -1;
+  const t=new Date(dateStr+'T00:00:00').getTime();
+  return days.findIndex(d=>d.getTime()===t);
+}
+
 function isWk(d){return d.getDay()===0||d.getDay()===6;}
-const CELL=26,LCOL=200;
+const CELL=26,LCOL=220;
+
 function renderG(){
-  const days=gdays(),toff=todayOff();
-  if(!G.tasks.length){document.getElementById('gw').innerHTML=`<div class="gantt-empty"><p>Nenhuma fase ainda.</p><button class="btn-ghost" onclick="addPhase()">+ adicionar primeira fase</button></div>`;return;}
+  if(!G.startDate||!G.endDate){ document.getElementById('gw').innerHTML=`<div class="gantt-empty"><p>Defina as datas de início e fim do projeto no topo.</p></div>`; return; }
+  const days=gdays();
+  if(!days.length){ document.getElementById('gw').innerHTML=`<div class="gantt-empty"><p>Data de fim deve ser posterior ao início.</p></div>`; return; }
+  const toff=todayOff(days);
+
+  if(!G.tasks.length){
+    document.getElementById('gw').innerHTML=`<div class="gantt-empty"><p>Nenhuma fase ainda.</p><button class="btn-ghost" onclick="addPhase()">+ adicionar primeira fase</button></div>`;
+    return;
+  }
+
   const months={};
   days.forEach(d=>{const k=d.getFullYear()+'-'+d.getMonth();if(!months[k])months[k]={label:d.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}),cnt:0};months[k].cnt++;});
   let mhdr=`<th class="tcol" rowspan="2" style="min-width:${LCOL}px;width:${LCOL}px"></th>`;
   Object.values(months).forEach(m=>{mhdr+=`<th colspan="${m.cnt}" style="font-size:11px;padding:4px 0;border-right:1px solid var(--gray200)">${m.label}</th>`;});
   const dhdr=days.map((d,i)=>{const wk=isWk(d),isT=i===toff;return `<th style="width:${CELL}px;min-width:${CELL}px;${wk?'opacity:.4':''}${isT?';color:var(--red);font-weight:600':''}">${d.getDate()}</th>`;}).join('');
   let cg=`<col style="width:${LCOL}px;min-width:${LCOL}px">`;days.forEach(()=>{cg+=`<col style="width:${CELL}px;min-width:${CELL}px;max-width:${CELL}px">`;});
+
   let tbody='';
   G.tasks.forEach((t,ti)=>{
     if(t.type==='phase'){
@@ -781,27 +831,105 @@ function renderG(){
       <tr class="add-task-row"><td class="tcell" colspan="${days.length+1}"><button class="add-task-btn" onclick="addTaskAfter(${ti})"><svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>adicionar tarefa</button></td></tr>`;
       return;
     }
+
+    // planned bar indices
+    const pS=dateToIdx(days,t.planStart);
+    const pE=dateToIdx(days,t.planEnd);
+    const hasPlan=pS>=0&&pE>=pS;
+
+    // exec bar indices
+    const eS=dateToIdx(days,t.execStart);
+    const eE=dateToIdx(days,t.execEnd);
+    const hasExec=eS>=0&&eE>=eS;
+
+    // is exec late? any exec day outside planned range
+    const execLate=hasExec&&hasPlan&&(eS>pE||eE>pE);
+
     const dc=days.map((d,di)=>{
-      const wk=isWk(d),isT=di===toff,inB=di>=t.start&&di<t.start+t.dur,isF=di===t.start,isL=di===t.start+t.dur-1;
-      const bc=t.status==='realizado'?'realizado':t.status==='atrasado'?'atrasado':'planned';
-      const bar=inB?`<div class="gbar ${bc}" data-ti="${ti}" style="left:${isF?2:0}px;right:${isL?2:0}px;border-top-left-radius:${isF?4:0}px;border-bottom-left-radius:${isF?4:0}px;border-top-right-radius:${isL?4:0}px;border-bottom-right-radius:${isL?4:0}px"></div>`:'';
+      const wk=isWk(d),isT=di===toff;
+      const inPlan=hasPlan&&di>=pS&&di<=pE;
+      const inExec=hasExec&&di>=eS&&di<=eE;
+      const pIsF=di===pS,pIsL=di===pE;
+      const eIsF=di===eS,eIsL=di===eE;
+
+      let bars='';
+      if(inPlan){
+        bars+=`<div class="gbar planned" data-ti="${ti}" data-role="plan" style="left:${pIsF?2:0}px;right:${pIsL?2:0}px;border-top-left-radius:${pIsF?4:0}px;border-bottom-left-radius:${pIsF?4:0}px;border-top-right-radius:${pIsL?4:0}px;border-bottom-right-radius:${pIsL?4:0}px"></div>`;
+      }
+      if(inExec){
+        const ec=execLate?'exec-late':'exec-ok';
+        bars+=`<div class="gbar exec ${ec}" data-ti="${ti}" data-role="exec" style="left:${eIsF?2:0}px;right:${eIsL?2:0}px;border-top-left-radius:${eIsF?4:0}px;border-bottom-left-radius:${eIsF?4:0}px;border-top-right-radius:${eIsL?4:0}px;border-bottom-right-radius:${eIsL?4:0}px"></div>`;
+      }
       const tln=isT?`<div class="today-ln"></div>`:'';
-      return `<td class="dcell${wk?' wknd-cell':''}" data-ti="${ti}" data-di="${di}">${bar}${tln}</td>`;
+      return `<td class="dcell${wk?' wknd-cell':''}" data-ti="${ti}" data-di="${di}">${bars}${tln}</td>`;
     }).join('');
-    tbody+=`<tr class="task-tr"><td class="tcell"><div style="display:flex;align-items:center;gap:4px"><div style="flex:1;min-width:0"><input class="tname" value="${e(t.name)}" onchange="G.tasks[${ti}].name=this.value;saveG()"><div style="display:flex;gap:4px;margin-top:2px"><input class="mini-sel" value="${e(t.base)}" placeholder="Base" onchange="G.tasks[${ti}].base=this.value;saveG()" style="width:70px;font-size:11px"><select class="mini-sel" onchange="G.tasks[${ti}].status=this.value;saveG();renderG()"><option value="planejado" ${t.status==='planejado'?'selected':''}>Planejado</option><option value="realizado" ${t.status==='realizado'?'selected':''}>Realizado</option><option value="atrasado" ${t.status==='atrasado'?'selected':''}>Atrasado</option></select></div></div><button class="del-g" onclick="delGItem(${ti})">×</button></div></td>${dc}</tr>`;
+
+    const planLabel=t.planStart&&t.planEnd?`<span class="gl-plan">▬ ${t.planStart.slice(5).replace('-','/')} → ${t.planEnd.slice(5).replace('-','/')}</span>`:'<span class="gl-plan" style="opacity:.4">▬ sem planejamento</span>';
+    const execLabel=t.execStart&&t.execEnd?`<span class="gl-exec">▬ ${t.execStart.slice(5).replace('-','/')} → ${t.execEnd.slice(5).replace('-','/')}</span>`:'<span style="opacity:.4;color:var(--text3)">▬ sem execução</span>';
+
+    tbody+=`<tr class="task-tr" style="height:48px">
+      <td class="tcell">
+        <div style="display:flex;align-items:flex-start;gap:4px">
+          <div style="flex:1;min-width:0">
+            <input class="tname" value="${e(t.name)}" onchange="G.tasks[${ti}].name=this.value;saveG()">
+            <div style="display:flex;gap:4px;margin-top:2px;align-items:center">
+              <input class="mini-sel" value="${e(t.base)}" placeholder="Base" onchange="G.tasks[${ti}].base=this.value;saveG()" style="width:55px;font-size:10px">
+            </div>
+            <div style="display:flex;gap:6px;margin-top:2px;flex-wrap:wrap">
+              <div style="display:flex;align-items:center;gap:3px">
+                <span style="font-size:9px;color:var(--blue);font-weight:600">PLAN</span>
+                <input type="date" value="${e(t.planStart)}" onchange="G.tasks[${ti}].planStart=this.value;saveG();renderG()" style="font-size:9px;padding:1px 3px;border:1px solid var(--gray200);border-radius:3px;background:var(--gray50);color:var(--text);font-family:'DM Sans',sans-serif">
+                <span style="font-size:9px;color:var(--text3)">→</span>
+                <input type="date" value="${e(t.planEnd)}" onchange="G.tasks[${ti}].planEnd=this.value;saveG();renderG()" style="font-size:9px;padding:1px 3px;border:1px solid var(--gray200);border-radius:3px;background:var(--gray50);color:var(--text);font-family:'DM Sans',sans-serif">
+              </div>
+              <div style="display:flex;align-items:center;gap:3px">
+                <span style="font-size:9px;color:var(--green-dark);font-weight:600">EXEC</span>
+                <input type="date" value="${e(t.execStart)}" onchange="G.tasks[${ti}].execStart=this.value;saveG();renderG()" style="font-size:9px;padding:1px 3px;border:1px solid var(--gray200);border-radius:3px;background:var(--gray50);color:var(--text);font-family:'DM Sans',sans-serif">
+                <span style="font-size:9px;color:var(--text3)">→</span>
+                <input type="date" value="${e(t.execEnd)}" onchange="G.tasks[${ti}].execEnd=this.value;saveG();renderG()" style="font-size:9px;padding:1px 3px;border:1px solid var(--gray200);border-radius:3px;background:var(--gray50);color:var(--text);font-family:'DM Sans',sans-serif">
+              </div>
+            </div>
+          </div>
+          <button class="del-g" onclick="delGItem(${ti})">×</button>
+        </div>
+      </td>${dc}
+    </tr>`;
   });
+
   document.getElementById('gw').innerHTML=`<table class="g"><colgroup>${cg}</colgroup><thead><tr>${mhdr}</tr><tr>${dhdr}</tr></thead><tbody>${tbody}</tbody></table>`;
   attachDrag();
 }
+
 function attachDrag(){
   let drag=null;
-  document.querySelectorAll('.gbar').forEach(bar=>{bar.addEventListener('mousedown',ev=>{const ti=parseInt(bar.dataset.ti);drag={ti,type:'move',x0:ev.clientX,s0:G.tasks[ti].start};ev.preventDefault();ev.stopPropagation();});});
   document.querySelectorAll('td.dcell').forEach(cell=>{
-    cell.addEventListener('mousedown',ev=>{if(drag)return;const ti=parseInt(cell.dataset.ti),di=parseInt(cell.dataset.di);if(isNaN(ti)||isNaN(di))return;const t=G.tasks[ti];if(di>=t.start&&di<t.start+t.dur)return;G.tasks[ti].start=di;G.tasks[ti].dur=1;drag={ti,type:'draw',di0:di};renderG();attachDrag();ev.preventDefault();});
-    cell.addEventListener('mouseenter',()=>{if(!drag)return;const di=parseInt(cell.dataset.di);if(isNaN(di))return;if(drag.type==='draw'){const t=G.tasks[drag.ti];if(di>=drag.di0){t.start=drag.di0;t.dur=di-drag.di0+1;}else{t.start=di;t.dur=drag.di0-di+1;}renderG();attachDrag();}});
+    cell.addEventListener('mousedown',ev=>{
+      if(drag)return;
+      const ti=parseInt(cell.dataset.ti),di=parseInt(cell.dataset.di);
+      if(isNaN(ti)||isNaN(di))return;
+      const days=gdays();
+      const dateStr=days[di].toISOString().slice(0,10);
+      const t=G.tasks[ti];
+      // ctrl/meta = draw exec, else draw plan
+      const role=ev.ctrlKey||ev.metaKey?'exec':'plan';
+      if(role==='plan'){t.planStart=dateStr;t.planEnd=dateStr;}
+      else{t.execStart=dateStr;t.execEnd=dateStr;}
+      drag={ti,di0:di,role};
+      saveG();renderG();attachDrag();ev.preventDefault();
+    });
+    cell.addEventListener('mouseenter',()=>{
+      if(!drag)return;
+      const di=parseInt(cell.dataset.di);if(isNaN(di))return;
+      const days=gdays();
+      const t=G.tasks[drag.ti];
+      const d0=days[drag.di0].toISOString().slice(0,10);
+      const d1=days[di].toISOString().slice(0,10);
+      if(drag.role==='plan'){t.planStart=d0<d1?d0:d1;t.planEnd=d0<d1?d1:d0;}
+      else{t.execStart=d0<d1?d0:d1;t.execEnd=d0<d1?d1:d0;}
+      saveG();renderG();attachDrag();
+    });
   });
-  document.addEventListener('mousemove',ev=>{if(!drag||drag.type!=='move')return;const delta=Math.round((ev.clientX-drag.x0)/CELL);G.tasks[drag.ti].start=Math.max(0,drag.s0+delta);renderG();attachDrag();});
-  document.addEventListener('mouseup',()=>{if(drag){drag=null;saveG();}});
+  document.addEventListener('mouseup',()=>{if(drag){drag=null;}});
 }
 
 /* ─── EXPORTS ─── */
@@ -822,8 +950,12 @@ function exportXLSX(){
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(cr),'Custos');
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Métrica','Resultado'],['Teste Cobli (%)',d.mTeste],['Visitas',d.mVisitas],['No-show técnico (%)',d.mNst],['No-show cliente (%)',d.mNsc],['Tempo médio',d.mTempo]]),'Métricas');
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Seção','Conteúdo'],['Forças',d.lForca],['Desafios',d.lDesaf],['Recomendações',d.lRec]]),'Aprendizados');
-  const gS=new Date(G.startDate+'T00:00:00'),gr=[['Tarefa','Base','Status','Dia início','Duração','Data início','Data fim']];
-  G.tasks.forEach(t=>{if(t.type==='phase'){gr.push([`— ${t.name}`,'','','','','','']);return;}const ds=new Date(gS);ds.setDate(ds.getDate()+t.start);const de=new Date(ds);de.setDate(de.getDate()+t.dur-1);gr.push([t.name,t.base,t.status,t.start+1,t.dur,ds.toLocaleDateString('pt-BR'),de.toLocaleDateString('pt-BR')]);});
+  const gr=[['Tarefa','Base','Início Planejado','Fim Planejado','Início Executado','Fim Executado','Status']];
+  G.tasks.forEach(t=>{
+    if(t.type==='phase'){gr.push([`— ${t.name}`,'','','','','','']);return;}
+    const late=t.execEnd&&t.planEnd&&t.execEnd>t.planEnd?'Atrasado':t.execEnd?'Concluído':'Em andamento';
+    gr.push([t.name,t.base,t.planStart,t.planEnd,t.execStart,t.execEnd,late]);
+  });
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(gr),'Cronograma');
   XLSX.writeFile(wb,`${(d.nome||'Implantacao').replace(/\s+/g,'_')}.xlsx`);
   msg('Excel exportado!');
@@ -838,22 +970,139 @@ function exportPDF(){
   const bH=F.bases.map(b=>`<tr><td>${b.id}</td><td>${b.end}</td><td>${b.resp}</td><td>${b.tel}</td><td>${b.veic}</td></tr>`).join('');
   const rH=F.risks.map(r=>`<tr><td>${r.tipo}</td><td>${r.desc}</td><td>${r.imp}</td><td>${r.mit}</td></tr>`).join('');
   const cH=F.costs.map(c=>`<tr><td>${c.desc}</td><td>${c.cat}</td><td>${c.status}</td><td style="text-align:right">${brl(c.val)}</td><td>${c.data}</td></tr>`).join('');
-  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${d.nome||'Implantação'}</title><style>body{font-family:Arial,sans-serif;font-size:12px;color:#07074E;padding:32px;max-width:820px;margin:0 auto}.hdr{display:flex;align-items:center;gap:10px;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #07074E}h1{font-size:18px;margin-bottom:2px}h2{font-size:13px;margin:18px 0 6px;border-bottom:1px solid #dde0ee;padding-bottom:4px}table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px}th{background:#f0f2fa;text-align:left;padding:5px 8px;border:1px solid #dde0ee}td{padding:4px 8px;border:1px solid #dde0ee}.kv{display:grid;grid-template-columns:160px 1fr;gap:3px 0;margin-bottom:10px}.k{color:#5a6080;font-size:11px;padding:3px 0}.v{font-size:11px;padding:3px 0}.totals{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}.tc{padding:10px;border-radius:6px;border:1px solid #dde0ee}.tc-label{font-size:10px;color:#9399bb;margin-bottom:3px}.tc-val{font-size:14px;font-weight:bold}.tc.nav{background:#07074E}.tc.nav .tc-label{color:rgba(255,255,255,.55)}.tc.nav .tc-val{color:#fff}.tc.pos{background:#E1F5EE}.tc.pos .tc-val{color:#008a79}.tc.neg{background:#fff0ee}.tc.neg .tc-val{color:#cc3828}pre{white-space:pre-wrap;font-family:Arial;font-size:11px}.footer{margin-top:32px;font-size:10px;color:#9399bb;border-top:1px solid #eef0f7;padding-top:8px;text-align:center}</style></head><body>
-  <div class="hdr"><svg width="32" height="32" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#001BB8"/><circle cx="16" cy="16" r="9" stroke="#fff" stroke-width="2" fill="none"/><circle cx="16" cy="16" r="3.5" fill="#fff"/></svg><div><div style="font-size:15px;font-weight:bold">Cobli · Implantação</div><div style="font-size:11px;color:#5a6080">Gerado em ${new Date().toLocaleDateString('pt-BR')}</div></div></div>
+
+  // Gantt as table for PDF
+  let ganttRows='';
+  let currentPhase='';
+  G.tasks.forEach(t=>{
+    if(t.type==='phase'){
+      currentPhase=t.name;
+      ganttRows+=`<tr><td colspan="6" style="background:#f0f2fa;font-weight:600;font-size:11px;color:#07074E;padding:5px 8px">${t.name}</td></tr>`;
+      return;
+    }
+    const late=t.execEnd&&t.planEnd&&t.execEnd>t.planEnd;
+    const done=!!t.execEnd;
+    const statusLbl=late?'Atrasado':done?'Concluído':'Em andamento';
+    const statusColor=late?'#cc3828':done?'#008a79':'#185FA5';
+    const planOk=t.planStart&&t.planEnd;
+    const execOk=t.execStart&&t.execEnd;
+    const fmtD=s=>s?s.split('-').reverse().join('/'):'-';
+    ganttRows+=`<tr>
+      <td style="padding-left:16px">${t.name}</td>
+      <td>${t.base||'-'}</td>
+      <td>${planOk?fmtD(t.planStart)+' → '+fmtD(t.planEnd):'-'}</td>
+      <td>${execOk?fmtD(t.execStart)+' → '+fmtD(t.execEnd):'-'}</td>
+      <td>${planOk&&execOk?calcDeviation(t.planEnd,t.execEnd):'-'}</td>
+      <td style="color:${statusColor};font-weight:500">${statusLbl}</td>
+    </tr>`;
+  });
+
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${d.nome||'Implantação'}</title>
+  <style>
+    body{font-family:Arial,sans-serif;font-size:12px;color:#07074E;padding:32px;max-width:900px;margin:0 auto}
+    .hdr{display:flex;align-items:center;gap:10px;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #07074E}
+    h1{font-size:18px;margin-bottom:2px}
+    h2{font-size:13px;margin:20px 0 6px;border-bottom:1px solid #dde0ee;padding-bottom:4px;color:#07074E}
+    table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px}
+    th{background:#f0f2fa;text-align:left;padding:5px 8px;border:1px solid #dde0ee;font-size:10px}
+    td{padding:4px 8px;border:1px solid #dde0ee;vertical-align:top}
+    .kv{display:grid;grid-template-columns:160px 1fr;gap:3px 0;margin-bottom:10px}
+    .k{color:#5a6080;font-size:11px;padding:3px 0}.v{font-size:11px;padding:3px 0}
+    .totals{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
+    .tc{padding:10px;border-radius:6px;border:1px solid #dde0ee}
+    .tc-label{font-size:10px;color:#9399bb;margin-bottom:3px}.tc-val{font-size:14px;font-weight:bold}
+    .tc.nav{background:#07074E}.tc.nav .tc-label{color:rgba(255,255,255,.55)}.tc.nav .tc-val{color:#fff}
+    .tc.pos{background:#E1F5EE}.tc.pos .tc-val{color:#008a79}
+    .tc.neg{background:#fff0ee}.tc.neg .tc-val{color:#cc3828}
+    pre{white-space:pre-wrap;font-family:Arial;font-size:11px}
+    .footer{margin-top:32px;font-size:10px;color:#9399bb;border-top:1px solid #eef0f7;padding-top:8px;text-align:center}
+    .legend{display:flex;gap:16px;margin-bottom:8px;font-size:10px;color:#5a6080}
+    .leg-sq{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:3px;vertical-align:middle}
+    @media print{body{padding:16px}.footer{position:fixed;bottom:0;left:0;right:0;text-align:center}}
+  </style></head><body>
+  <div class="hdr">
+    <svg width="32" height="32" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#001BB8"/><circle cx="16" cy="16" r="9" stroke="#fff" stroke-width="2" fill="none"/><circle cx="16" cy="16" r="3.5" fill="#fff"/></svg>
+    <div><div style="font-size:15px;font-weight:bold">Cobli · Implantação</div><div style="font-size:11px;color:#5a6080">Gerado em ${new Date().toLocaleDateString('pt-BR')}</div></div>
+  </div>
   <h1>${d.nome||'Projeto de Implantação'}</h1>
-  <h2>1. Dados chave</h2><div class="kv"><div class="k">Responsável</div><div class="v">${d.resp||''}</div><div class="k">Patrocinador</div><div class="v">${d.pat||''}</div><div class="k">Produto</div><div class="v">${d.prod||''}</div><div class="k">Data início</div><div class="v">${d.data||''}</div><div class="k">Prazo</div><div class="v">${d.prazo||''} dias</div><div class="k">Objetivo</div><div class="v"><pre>${d.obj||''}</pre></div><div class="k">Critérios</div><div class="v">${d.crit||''}</div></div>
-  <h2>2. Partes interessadas</h2><table><thead><tr><th>Papel</th><th>Nome</th><th>Empresa</th><th>Telefone</th><th>E-mail</th></tr></thead><tbody>${stH}</tbody></table>
-  <h2>3. Frota</h2><div class="kv"><div class="k">Total contratado</div><div class="v">${d.frTotal||''}</div><div class="k">Cancelados</div><div class="v">${d.frCancel||''}</div><div class="k">Finalizando</div><div class="v">${(parseFloat(d.frTotal)||0)-(parseFloat(d.frCancel)||0)}</div><div class="k">Tipo/Modelo</div><div class="v">${d.frTipo||''}</div></div>
-  <h2>4. Bases</h2><table><thead><tr><th>ID</th><th>Endereço</th><th>Responsável</th><th>Contato</th><th>Veículos</th></tr></thead><tbody>${bH}</tbody></table>
-  <h2>5. Riscos</h2><table><thead><tr><th>Tipo</th><th>Descrição</th><th>Impacto</th><th>Mitigação</th></tr></thead><tbody>${rH}</tbody></table>
-  <h2>6. Custos</h2><table><thead><tr><th>Descrição</th><th>Categoria</th><th>Status</th><th>Valor</th><th>Data</th></tr></thead><tbody>${cH}</tbody></table>
-  <div class="totals"><div class="tc"><div class="tc-label">Total custos</div><div class="tc-val">${brl(custos)}</div></div><div class="tc nav"><div class="tc-label">Valor de adesão</div><div class="tc-val">${brl(adesao)}</div></div><div class="tc ${dif>=0?'pos':'neg'}"><div class="tc-label">${dif>=0?'Saldo positivo':'Déficit'}</div><div class="tc-val">${brl(Math.abs(dif))}</div></div></div>
-  <h2>7. Métricas</h2><div class="kv"><div class="k">Teste Cobli</div><div class="v">${d.mTeste||''}%</div><div class="k">Visitas</div><div class="v">${d.mVisitas||''}</div><div class="k">No-show técnico</div><div class="v">${d.mNst||''}%</div><div class="k">No-show cliente</div><div class="v">${d.mNsc||''}%</div><div class="k">Tempo médio</div><div class="v">${d.mTempo||''}</div></div>
-  <h2>8. Lições aprendidas</h2><p style="font-weight:bold;font-size:11px;margin-bottom:4px">Forças</p><pre style="margin-bottom:10px">${d.lForca||''}</pre><p style="font-weight:bold;font-size:11px;margin-bottom:4px">Desafios</p><pre style="margin-bottom:10px">${d.lDesaf||''}</pre><p style="font-weight:bold;font-size:11px;margin-bottom:4px">Recomendações</p><pre>${d.lRec||''}</pre>
-  <div class="footer">Cobli · Time de Implantação · Documento gerado automaticamente</div></body></html>`;
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));
-  a.download=`${(d.nome||'Implantacao').replace(/\s+/g,'_')}_PDF.html`;a.click();
+
+  <h2>1. Dados chave</h2>
+  <div class="kv">
+    <div class="k">Responsável</div><div class="v">${d.resp||''}</div>
+    <div class="k">Patrocinador</div><div class="v">${d.pat||''}</div>
+    <div class="k">Produto</div><div class="v">${d.prod||''}</div>
+    <div class="k">Data início</div><div class="v">${d.data||''}</div>
+    <div class="k">Prazo</div><div class="v">${d.prazo||''} dias</div>
+    <div class="k">Objetivo</div><div class="v"><pre>${d.obj||''}</pre></div>
+    <div class="k">Critérios</div><div class="v">${d.crit||''}</div>
+  </div>
+
+  <h2>2. Partes interessadas</h2>
+  <table><thead><tr><th>Papel</th><th>Nome</th><th>Empresa</th><th>Telefone</th><th>E-mail</th></tr></thead><tbody>${stH}</tbody></table>
+
+  <h2>3. Frota</h2>
+  <div class="kv">
+    <div class="k">Total contratado</div><div class="v">${d.frTotal||''}</div>
+    <div class="k">Cancelados</div><div class="v">${d.frCancel||''}</div>
+    <div class="k">Finalizando</div><div class="v">${(parseFloat(d.frTotal)||0)-(parseFloat(d.frCancel)||0)}</div>
+    <div class="k">Tipo/Modelo</div><div class="v">${d.frTipo||''}</div>
+  </div>
+
+  <h2>4. Bases</h2>
+  <table><thead><tr><th>ID</th><th>Endereço</th><th>Responsável</th><th>Contato</th><th>Veículos</th></tr></thead><tbody>${bH}</tbody></table>
+
+  <h2>5. Riscos e premissas</h2>
+  <table><thead><tr><th>Tipo</th><th>Descrição</th><th>Impacto</th><th>Mitigação</th></tr></thead><tbody>${rH}</tbody></table>
+
+  <h2>6. Custos</h2>
+  <table><thead><tr><th>Descrição</th><th>Categoria</th><th>Status</th><th style="text-align:right">Valor</th><th>Data</th></tr></thead><tbody>${cH}</tbody></table>
+  <div class="totals">
+    <div class="tc"><div class="tc-label">Total custos</div><div class="tc-val">${brl(custos)}</div></div>
+    <div class="tc nav"><div class="tc-label">Valor de adesão</div><div class="tc-val">${brl(adesao)}</div></div>
+    <div class="tc ${dif>=0?'pos':'neg'}"><div class="tc-label">${dif>=0?'Saldo positivo':'Déficit'}</div><div class="tc-val">${brl(Math.abs(dif))}</div></div>
+  </div>
+
+  <h2>7. Cronograma — Planejado vs. Executado</h2>
+  <div class="legend">
+    <span><span class="leg-sq" style="background:#001BB820;border:1px solid #001BB8"></span>Planejado</span>
+    <span><span class="leg-sq" style="background:#E1F5EE;border:1px solid #00AE97"></span>Executado no prazo</span>
+    <span><span class="leg-sq" style="background:#fff0ee;border:1px solid #FF4633"></span>Executado com atraso</span>
+  </div>
+  <table>
+    <thead><tr><th>Tarefa</th><th>Base</th><th>Período planejado</th><th>Período executado</th><th>Desvio</th><th>Status</th></tr></thead>
+    <tbody>${ganttRows}</tbody>
+  </table>
+
+  <h2>8. Métricas</h2>
+  <div class="kv">
+    <div class="k">Teste Cobli</div><div class="v">${d.mTeste||''}%</div>
+    <div class="k">Visitas</div><div class="v">${d.mVisitas||''}</div>
+    <div class="k">No-show técnico</div><div class="v">${d.mNst||''}%</div>
+    <div class="k">No-show cliente</div><div class="v">${d.mNsc||''}%</div>
+    <div class="k">Tempo médio</div><div class="v">${d.mTempo||''}</div>
+  </div>
+
+  <h2>9. Lições aprendidas</h2>
+  <p style="font-weight:bold;font-size:11px;margin-bottom:4px">Forças</p><pre style="margin-bottom:10px">${d.lForca||''}</pre>
+  <p style="font-weight:bold;font-size:11px;margin-bottom:4px">Desafios</p><pre style="margin-bottom:10px">${d.lDesaf||''}</pre>
+  <p style="font-weight:bold;font-size:11px;margin-bottom:4px">Recomendações</p><pre>${d.lRec||''}</pre>
+
+  <div class="footer">Cobli · Time de Implantação · Documento gerado automaticamente</div>
+  </body></html>`;
+
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));
+  a.download=`${(d.nome||'Implantacao').replace(/\s+/g,'_')}_PDF.html`;
+  a.click();
   msg('HTML exportado! Abra e use Ctrl+P → Salvar como PDF.');
+}
+
+function calcDeviation(planEnd, execEnd){
+  if(!planEnd||!execEnd)return '-';
+  const p=new Date(planEnd+'T00:00:00'), ex=new Date(execEnd+'T00:00:00');
+  const diff=Math.round((ex-p)/864e5);
+  if(diff===0)return 'No prazo';
+  return diff>0?`+${diff}d atraso`:`${diff}d adiantado`;
 }
 
 function msg(t){const el=document.getElementById('smsg');el.textContent=t;setTimeout(()=>el.textContent='',4000);}
