@@ -460,7 +460,8 @@ table.g tr.task-tr:hover td{background:var(--gray50)}
   <!-- EXPORT BAR -->
   <div class="export-bar" id="export-bar">
     <button class="btn-export primary" onclick="exportXLSX()">↓ Exportar Excel</button>
-    <button class="btn-export secondary" onclick="exportPDF()">↓ Exportar PDF</button>
+    <button class="btn-export secondary" onclick="exportPDF('interno')" title="Inclui custos e lições aprendidas">↓ PDF Interno</button>
+    <button class="btn-export secondary" onclick="exportPDF('cliente')" title="Sem custos e lições aprendidas" style="border-color:var(--green);color:var(--green-dark)">↓ PDF Cliente</button>
     <span class="smsg" id="smsg"></span>
     <button class="btn-export danger" onclick="deleteProject()">Excluir projeto</button>
   </div>
@@ -961,7 +962,8 @@ function exportXLSX(){
   msg('Excel exportado!');
 }
 
-function exportPDF(){
+function exportPDF(mode='interno'){
+  const isCliente = mode==='cliente';
   const d=F.dados||{};
   const custos=F.costs.filter(c=>c.cat!=='Adesão').reduce((s,c)=>s+(parseFloat(c.val)||0),0);
   const adesao=F.costs.filter(c=>c.cat==='Adesão').reduce((s,c)=>s+(parseFloat(c.val)||0),0);
@@ -971,12 +973,10 @@ function exportPDF(){
   const rH=F.risks.map(r=>`<tr><td>${r.tipo}</td><td>${r.desc}</td><td>${r.imp}</td><td>${r.mit}</td></tr>`).join('');
   const cH=F.costs.map(c=>`<tr><td>${c.desc}</td><td>${c.cat}</td><td>${c.status}</td><td style="text-align:right">${brl(c.val)}</td><td>${c.data}</td></tr>`).join('');
 
-  // Gantt as table for PDF
+  // Gantt table
   let ganttRows='';
-  let currentPhase='';
   G.tasks.forEach(t=>{
     if(t.type==='phase'){
-      currentPhase=t.name;
       ganttRows+=`<tr><td colspan="6" style="background:#f0f2fa;font-weight:600;font-size:11px;color:#07074E;padding:5px 8px">${t.name}</td></tr>`;
       return;
     }
@@ -984,24 +984,27 @@ function exportPDF(){
     const done=!!t.execEnd;
     const statusLbl=late?'Atrasado':done?'Concluído':'Em andamento';
     const statusColor=late?'#cc3828':done?'#008a79':'#185FA5';
-    const planOk=t.planStart&&t.planEnd;
-    const execOk=t.execStart&&t.execEnd;
     const fmtD=s=>s?s.split('-').reverse().join('/'):'-';
     ganttRows+=`<tr>
       <td style="padding-left:16px">${t.name}</td>
       <td>${t.base||'-'}</td>
-      <td>${planOk?fmtD(t.planStart)+' → '+fmtD(t.planEnd):'-'}</td>
-      <td>${execOk?fmtD(t.execStart)+' → '+fmtD(t.execEnd):'-'}</td>
-      <td>${planOk&&execOk?calcDeviation(t.planEnd,t.execEnd):'-'}</td>
+      <td>${t.planStart&&t.planEnd?fmtD(t.planStart)+' → '+fmtD(t.planEnd):'-'}</td>
+      <td>${t.execStart&&t.execEnd?fmtD(t.execStart)+' → '+fmtD(t.execEnd):'-'}</td>
+      <td>${calcDeviation(t.planEnd,t.execEnd)}</td>
       <td style="color:${statusColor};font-weight:500">${statusLbl}</td>
     </tr>`;
   });
 
-  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${d.nome||'Implantação'}</title>
-  <style>
-    body{font-family:Arial,sans-serif;font-size:12px;color:#07074E;padding:32px;max-width:900px;margin:0 auto}
+  // section numbering adjusts by mode
+  let sn=1;
+  const sec=title=>`<h2>${sn++}. ${title}</h2>`;
+
+  const css=`body{font-family:Arial,sans-serif;font-size:12px;color:#07074E;padding:32px;max-width:900px;margin:0 auto}
     .hdr{display:flex;align-items:center;gap:10px;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #07074E}
-    h1{font-size:18px;margin-bottom:2px}
+    .badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:4px;font-weight:600;margin-left:8px;vertical-align:middle}
+    .badge-interno{background:#faeeda;color:#633806}
+    .badge-cliente{background:#E1F5EE;color:#085041}
+    h1{font-size:18px;margin-bottom:4px}
     h2{font-size:13px;margin:20px 0 6px;border-bottom:1px solid #dde0ee;padding-bottom:4px;color:#07074E}
     table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px}
     th{background:#f0f2fa;text-align:left;padding:5px 8px;border:1px solid #dde0ee;font-size:10px}
@@ -1015,18 +1018,26 @@ function exportPDF(){
     .tc.pos{background:#E1F5EE}.tc.pos .tc-val{color:#008a79}
     .tc.neg{background:#fff0ee}.tc.neg .tc-val{color:#cc3828}
     pre{white-space:pre-wrap;font-family:Arial;font-size:11px}
-    .footer{margin-top:32px;font-size:10px;color:#9399bb;border-top:1px solid #eef0f7;padding-top:8px;text-align:center}
     .legend{display:flex;gap:16px;margin-bottom:8px;font-size:10px;color:#5a6080}
     .leg-sq{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:3px;vertical-align:middle}
-    @media print{body{padding:16px}.footer{position:fixed;bottom:0;left:0;right:0;text-align:center}}
-  </style></head><body>
+    .footer{margin-top:32px;font-size:10px;color:#9399bb;border-top:1px solid #eef0f7;padding-top:8px;text-align:center}
+    @media print{body{padding:16px}}`;
+
+  const badge=isCliente
+    ?`<span class="badge badge-cliente">Documento Cliente</span>`
+    :`<span class="badge badge-interno">Uso Interno</span>`;
+
+  let body=`
   <div class="hdr">
     <svg width="32" height="32" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#001BB8"/><circle cx="16" cy="16" r="9" stroke="#fff" stroke-width="2" fill="none"/><circle cx="16" cy="16" r="3.5" fill="#fff"/></svg>
-    <div><div style="font-size:15px;font-weight:bold">Cobli · Implantação</div><div style="font-size:11px;color:#5a6080">Gerado em ${new Date().toLocaleDateString('pt-BR')}</div></div>
+    <div>
+      <div style="font-size:15px;font-weight:bold">Cobli · Implantação</div>
+      <div style="font-size:11px;color:#5a6080">Gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
+    </div>
   </div>
-  <h1>${d.nome||'Projeto de Implantação'}</h1>
+  <h1>${d.nome||'Projeto de Implantação'} ${badge}</h1>
 
-  <h2>1. Dados chave</h2>
+  ${sec('Dados chave')}
   <div class="kv">
     <div class="k">Responsável</div><div class="v">${d.resp||''}</div>
     <div class="k">Patrocinador</div><div class="v">${d.pat||''}</div>
@@ -1034,35 +1045,28 @@ function exportPDF(){
     <div class="k">Data início</div><div class="v">${d.data||''}</div>
     <div class="k">Prazo</div><div class="v">${d.prazo||''} dias</div>
     <div class="k">Objetivo</div><div class="v"><pre>${d.obj||''}</pre></div>
-    <div class="k">Critérios</div><div class="v">${d.crit||''}</div>
+    <div class="k">Critérios de sucesso</div><div class="v">${d.crit||''}</div>
   </div>
 
-  <h2>2. Partes interessadas</h2>
+  ${sec('Partes interessadas')}
   <table><thead><tr><th>Papel</th><th>Nome</th><th>Empresa</th><th>Telefone</th><th>E-mail</th></tr></thead><tbody>${stH}</tbody></table>
 
-  <h2>3. Frota</h2>
+  ${sec('Levantamento da frota')}
   <div class="kv">
     <div class="k">Total contratado</div><div class="v">${d.frTotal||''}</div>
     <div class="k">Cancelados</div><div class="v">${d.frCancel||''}</div>
     <div class="k">Finalizando</div><div class="v">${(parseFloat(d.frTotal)||0)-(parseFloat(d.frCancel)||0)}</div>
     <div class="k">Tipo/Modelo</div><div class="v">${d.frTipo||''}</div>
+    <div class="k">Customizações</div><div class="v"><pre>${d.frCustom||''}</pre></div>
   </div>
 
-  <h2>4. Bases</h2>
+  ${sec('Bases de operação e instalação')}
   <table><thead><tr><th>ID</th><th>Endereço</th><th>Responsável</th><th>Contato</th><th>Veículos</th></tr></thead><tbody>${bH}</tbody></table>
 
-  <h2>5. Riscos e premissas</h2>
+  ${sec('Gestão de riscos e premissas')}
   <table><thead><tr><th>Tipo</th><th>Descrição</th><th>Impacto</th><th>Mitigação</th></tr></thead><tbody>${rH}</tbody></table>
 
-  <h2>6. Custos</h2>
-  <table><thead><tr><th>Descrição</th><th>Categoria</th><th>Status</th><th style="text-align:right">Valor</th><th>Data</th></tr></thead><tbody>${cH}</tbody></table>
-  <div class="totals">
-    <div class="tc"><div class="tc-label">Total custos</div><div class="tc-val">${brl(custos)}</div></div>
-    <div class="tc nav"><div class="tc-label">Valor de adesão</div><div class="tc-val">${brl(adesao)}</div></div>
-    <div class="tc ${dif>=0?'pos':'neg'}"><div class="tc-label">${dif>=0?'Saldo positivo':'Déficit'}</div><div class="tc-val">${brl(Math.abs(dif))}</div></div>
-  </div>
-
-  <h2>7. Cronograma — Planejado vs. Executado</h2>
+  ${sec('Cronograma — Planejado vs. Executado')}
   <div class="legend">
     <span><span class="leg-sq" style="background:#001BB820;border:1px solid #001BB8"></span>Planejado</span>
     <span><span class="leg-sq" style="background:#E1F5EE;border:1px solid #00AE97"></span>Executado no prazo</span>
@@ -1071,30 +1075,47 @@ function exportPDF(){
   <table>
     <thead><tr><th>Tarefa</th><th>Base</th><th>Período planejado</th><th>Período executado</th><th>Desvio</th><th>Status</th></tr></thead>
     <tbody>${ganttRows}</tbody>
-  </table>
+  </table>`;
 
-  <h2>8. Métricas</h2>
+  if(!isCliente){
+    body+=`
+  ${sec('Custos da implantação')}
+  <table><thead><tr><th>Descrição</th><th>Categoria</th><th>Status</th><th style="text-align:right">Valor</th><th>Data</th></tr></thead><tbody>${cH}</tbody></table>
+  <div class="totals">
+    <div class="tc"><div class="tc-label">Total custos</div><div class="tc-val">${brl(custos)}</div></div>
+    <div class="tc nav"><div class="tc-label">Valor de adesão</div><div class="tc-val">${brl(adesao)}</div></div>
+    <div class="tc ${dif>=0?'pos':'neg'}"><div class="tc-label">${dif>=0?'Saldo positivo':'Déficit'}</div><div class="tc-val">${brl(Math.abs(dif))}</div></div>
+  </div>`;
+  }
+
+  body+=`
+  ${sec('Métricas de resultado')}
   <div class="kv">
-    <div class="k">Teste Cobli</div><div class="v">${d.mTeste||''}%</div>
-    <div class="k">Visitas</div><div class="v">${d.mVisitas||''}</div>
+    <div class="k">Teste Cobli instalador</div><div class="v">${d.mTeste||''}%</div>
+    <div class="k">Qtd. de visitas</div><div class="v">${d.mVisitas||''}</div>
     <div class="k">No-show técnico</div><div class="v">${d.mNst||''}%</div>
     <div class="k">No-show cliente</div><div class="v">${d.mNsc||''}%</div>
-    <div class="k">Tempo médio</div><div class="v">${d.mTempo||''}</div>
-  </div>
+    <div class="k">Tempo médio instalação</div><div class="v">${d.mTempo||''}</div>
+  </div>`;
 
-  <h2>9. Lições aprendidas</h2>
+  if(!isCliente){
+    body+=`
+  ${sec('Lições aprendidas')}
   <p style="font-weight:bold;font-size:11px;margin-bottom:4px">Forças</p><pre style="margin-bottom:10px">${d.lForca||''}</pre>
   <p style="font-weight:bold;font-size:11px;margin-bottom:4px">Desafios</p><pre style="margin-bottom:10px">${d.lDesaf||''}</pre>
-  <p style="font-weight:bold;font-size:11px;margin-bottom:4px">Recomendações</p><pre>${d.lRec||''}</pre>
+  <p style="font-weight:bold;font-size:11px;margin-bottom:4px">Recomendações</p><pre>${d.lRec||''}</pre>`;
+  }
 
-  <div class="footer">Cobli · Time de Implantação · Documento gerado automaticamente</div>
-  </body></html>`;
+  body+=`<div class="footer">Cobli · Time de Implantação · Documento gerado automaticamente</div>`;
 
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${d.nome||'Implantação'} — ${isCliente?'Cliente':'Interno'}</title><style>${css}</style></head><body>${body}</body></html>`;
+
+  const suffix=isCliente?'_Cliente':'_Interno';
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));
-  a.download=`${(d.nome||'Implantacao').replace(/\s+/g,'_')}_PDF.html`;
+  a.download=`${(d.nome||'Implantacao').replace(/\s+/g,'_')}${suffix}_PDF.html`;
   a.click();
-  msg('HTML exportado! Abra e use Ctrl+P → Salvar como PDF.');
+  msg(isCliente?'PDF Cliente exportado! Sem custos e lições aprendidas.':'PDF Interno exportado com todas as informações.');
 }
 
 function calcDeviation(planEnd, execEnd){
