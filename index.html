@@ -443,6 +443,21 @@ table.g tr.task-tr:hover td{background:var(--gray50)}
       </div>
     </div>
 
+    <!-- MATRIZ DE COMUNICAÇÃO -->
+    <div class="card">
+      <div class="card-head" onclick="toggleCard(this)">
+        <div class="card-num">2.1</div><div class="card-title">Matriz de comunicação</div><div class="card-chev">▾</div>
+      </div>
+      <div class="card-body">
+        <div class="tip-wrap"><div class="tip-icon">?</div><span class="tip-label">Como preencher esta seção?</span><div class="tip-box"><strong>Matriz de comunicação</strong>Define como as informações do projeto serão comunicadas — quem precisa saber o quê, quando e por qual canal.<ul><li><b>Informação/assunto:</b> o que será comunicado (ex: status diário, alerta de risco)</li><li><b>Para quem:</b> o destinatário da comunicação do lado do cliente</li><li><b>Quando:</b> frequência ou gatilho (ex: diário, imediato no desvio)</li><li><b>Como:</b> canal utilizado (ex: Grupo WhatsApp, e-mail, reunião)</li><li><b>Responsável:</b> quem da Cobli faz a comunicação</li></ul></div></div>
+        <div class="tbl-wrap"><table class="itbl">
+          <thead><tr><th>Informação / Assunto</th><th>Para quem</th><th>Quando</th><th>Como</th><th>Responsável</th><th></th></tr></thead>
+          <tbody id="matriz-body"></tbody>
+        </table></div>
+        <button class="add-row" onclick="addMatriz()">+ adicionar comunicação</button>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-head" onclick="toggleCard(this)">
         <div class="card-num">3</div><div class="card-title">Levantamento da frota</div><div class="card-chev">▾</div>
@@ -756,7 +771,7 @@ let F = {stk:[],bases:[],risks:[],costs:[]};
 
 function loadF(){
   try{ const s=localStorage.getItem(fkey(currentId)); if(s) F=JSON.parse(s); else F={stk:[],bases:[],risks:[],costs:[]}; } catch(e){ F={stk:[],bases:[],risks:[],costs:[]}; }
-  if(!F.stk)F.stk=[];if(!F.bases)F.bases=[];if(!F.risks)F.risks=[];if(!F.costs)F.costs=[];
+  if(!F.stk)F.stk=[];if(!F.bases)F.bases=[];if(!F.risks)F.risks=[];if(!F.costs)F.costs=[];if(!F.matriz)F.matriz=[];
   const set=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
   const d=F.dados||{};
   ['nome','resp','pat','prod','data','prazo','crit','obj','entrega'].forEach(k=>set('f-'+k,d[k]));
@@ -764,7 +779,7 @@ function loadF(){
   set('c-obs',d.cObs);
   ['teste','visitas','nst','nsc','tempo'].forEach(k=>set('m-'+k,d['m'+k.charAt(0).toUpperCase()+k.slice(1)]));
   ['forca','desaf','rec'].forEach(k=>set('l-'+k,d['l'+k.charAt(0).toUpperCase()+k.slice(1)]));
-  calcFinal(); renderStk(); renderBases(); renderRisks(); renderCosts();
+  calcFinal(); renderStk(); renderMatriz(); renderBases(); renderRisks(); renderCosts();
 }
 
 function saveF(){
@@ -795,6 +810,18 @@ function renderStk(){
   </tr>`).join('');
 }
 function addStk(){F.stk.push({papel:'',nome:'',empresa:'',tel:'',email:''});saveF();renderStk();}
+
+function renderMatriz(){
+  document.getElementById('matriz-body').innerHTML=F.matriz.map((m,i)=>`<tr>
+    <td><input value="${e(m.assunto)}" onchange="F.matriz[${i}].assunto=this.value;saveF()" placeholder="Ex: Status diário"></td>
+    <td><input value="${e(m.para)}" onchange="F.matriz[${i}].para=this.value;saveF()" placeholder="Ex: Gabriel Ramires"></td>
+    <td><input value="${e(m.quando)}" onchange="F.matriz[${i}].quando=this.value;saveF()" placeholder="Ex: Diário"></td>
+    <td><input value="${e(m.como)}" onchange="F.matriz[${i}].como=this.value;saveF()" placeholder="Ex: Grupo WhatsApp"></td>
+    <td><input value="${e(m.resp)}" onchange="F.matriz[${i}].resp=this.value;saveF()" placeholder="Ex: Líder do projeto"></td>
+    <td><button class="del-btn" onclick="F.matriz.splice(${i},1);saveF();renderMatriz()">×</button></td>
+  </tr>`).join('');
+}
+function addMatriz(){F.matriz.push({assunto:'',para:'',quando:'',como:'',resp:''});saveF();renderMatriz();}
 
 function renderBases(){
   document.getElementById('base-body').innerHTML=F.bases.map((b,i)=>`<tr>
@@ -1046,6 +1073,8 @@ function exportXLSX(){
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Campo','Detalhe'],['Nome',d.nome],['Responsável',d.resp],['Patrocinador',d.pat],['Produto',d.prod],['Data início',d.data],['Prazo (dias)',d.prazo],['Objetivo',d.obj],['Critérios',d.crit],['Entregáveis',d.entrega]]),'Dados Chave');
   const sr=[['Papel','Nome','Empresa','Telefone','E-mail']];F.stk.forEach(s=>sr.push([s.papel,s.nome,s.empresa,s.tel,s.email]));
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sr),'Stakeholders');
+  const mr=[['Informação/Assunto','Para quem','Quando','Como','Responsável']];F.matriz.forEach(m=>mr.push([m.assunto,m.para,m.quando,m.como,m.resp]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(mr),'Matriz de Comunicação');
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Item','Valor'],['Total contratado',d.frTotal],['Cancelados',d.frCancel],['Finalizando',(parseFloat(d.frTotal)||0)-(parseFloat(d.frCancel)||0)],['Tipo/Modelo',d.frTipo],['Customizações',d.frCustom]]),'Frota');
   const br2=[['ID','Endereço','Responsável','Contato','Veículos','Produto']];F.bases.forEach(b=>br2.push([b.id,b.end,b.resp,b.tel,b.veic,b.prod]));
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(br2),'Bases');
@@ -1157,6 +1186,10 @@ function exportPDF(mode='interno'){
 
   ${sec('Partes interessadas')}
   <table><thead><tr><th>Papel</th><th>Nome</th><th>Empresa</th><th>Telefone</th><th>E-mail</th></tr></thead><tbody>${stH}</tbody></table>
+
+  <h3 style="font-size:12px;font-weight:600;color:#07074E;margin:12px 0 6px">2.1 Matriz de comunicação</h3>
+  <table><thead><tr><th>Informação / Assunto</th><th>Para quem</th><th>Quando</th><th>Como</th><th>Responsável</th></tr></thead>
+  <tbody>${F.matriz.map(m=>`<tr><td>${m.assunto||''}</td><td>${m.para||''}</td><td>${m.quando||''}</td><td>${m.como||''}</td><td>${m.resp||''}</td></tr>`).join('')}</tbody></table>
 
   ${sec('Levantamento da frota')}
   <div class="kv">
